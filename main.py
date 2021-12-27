@@ -1,8 +1,8 @@
-#!/usr/bin/python3.9
 # -*- coding: UTF-8 -*-
 # ? importing modules
 
-from tkinter import ttk, END, StringVar, Text, Toplevel, NORMAL, DISABLED, Label, Button, CENTER, RIGHT, Y, NONE, PhotoImage, BooleanVar
+from tkinter import ttk, END, StringVar, Text, Toplevel, NORMAL, DISABLED, Label, Button, CENTER, RIGHT, Y, NONE, \
+    BooleanVar
 from arabic_reshaper import reshape
 from bidi.algorithm import get_display  # * to reverse the arabic letter, so it will be in the right order
 from ttkthemes import ThemedTk
@@ -17,372 +17,414 @@ from sys import platform
 from threading import Timer
 import webbrowser  # ? we can't say "from webbrowser import open "
 # !because there is a function called open we use to open a file
-
-# ?######################################
-Themes = ['adapta', 'alt', 'aquativo', 'arc', 'breeze', 'black', 'blue', 'clam', 'classic', 'clearlooks', 'default',
-          'equilux', 'itft1', 'keramik', 'keramik_alt', 'kroc', 'plastik', 'radiance', 'scidblue', 'scidgreen',
-          'scidgrey', 'scidmint', 'scidpink', 'scidpurple', 'scidsand', 'smog', 'winxpblue', 'yaru']
-theme = Themes[18]
-# ! Creating the main objects/components
-root = ThemedTk(theme=theme, themebg=True)
-SelectedTheme = StringVar()
-ThemesCombo = ttk.Combobox(root)
-ThemeLabel = ttk.Label(root)
-s = ttk.Style()
-########################################
-scroll = ttk.Scrollbar(root)
-Output = Text(root)
-# ? Search box objects
-SearchBox = ttk.Entry(root)
-SearchBoxContent = StringVar()
-SearchBtn = ttk.Button(root)  # ? Search Button objects
-ClearBtn = ttk.Button(root)  # ?  Button object
-SaveBtn = ttk.Button(root)  # ? Save Button object
-BtnBgColor = StringVar()  # ! Buttons color
-#################################
-Mode = BooleanVar()
-ReadingModeRbtn = ttk.Radiobutton(root)
-SearchingModeRbtn = ttk.Radiobutton(root)
-# ! windows colors
-WindowsBgColor = StringVar()  # for error window and saving window
-UserName = getlogin()  # * os.getlogin()
-file_name = "English_" + str(datetime.now().date())
-translator = Translator()
-OnlineSearchBtn = ttk.Button(root)
-ArDict = {}  # dictionary for linux only,
-LastClipboard = paste()
+from json import loads
+from functools import partial
 
 
-def show_error_window(error_message):
-    ErrorWin = Toplevel(root)
-    ErrorWin.geometry('250x100')
-    ErrorWin.config(bg=WindowsBgColor.get())
-    ErrorWin.resizable(False, False)
-    ErrorWin.title('Error')
-    Error = Label(ErrorWin,
-                  text=error_message,
-                  font=('Ubuntu', 15),
-                  bg=WindowsBgColor.get(),
-                  fg='red'
-                  )
-    Error.pack()
-    ErrorWin.after(3000, lambda: ErrorWin.destroy())
+class GUI(ThemedTk):
 
+    def __init__(self):
+        super().__init__()
+        self.Themes = ['adapta', 'alt', 'aquativo', 'arc', 'breeze', 'black', 'blue', 'clam', 'classic', 'clearlooks',
+                       'default',
+                       'equilux', 'itft1', 'keramik', 'keramik_alt', 'kroc', 'plastik', 'radiance', 'scidblue',
+                       'scidgreen',
+                       'scidgrey', 'scidmint', 'scidpink', 'scidpurple', 'scidsand', 'smog', 'winxpblue', 'yaru']
+        self.theme = self.Themes[18]
+        # ! Creating the main objects/components
+        self.SelectedTheme = StringVar()
+        self.ThemesCombo = ttk.Combobox()
+        self.ThemeLabel = ttk.Label()
+        self.style = ttk.Style()
+        ########################################
+        self.scroll = ttk.Scrollbar()
+        self.Output = Text()
+        # ? Search box objects
+        self.SearchBox = ttk.Entry()
+        self.SearchBoxContent = StringVar()
+        self.SearchBtn = ttk.Button()  # ? Search Button objects
+        self.ClearBtn = ttk.Button()  # ?  Button object
+        self.SaveBtn = ttk.Button()  # ? Save Button object
+        self.BtnBgColor = StringVar()  # ! Buttons color
+        #################################
+        self.Mode = BooleanVar()
+        self.ReadingModeRbtn = ttk.Radiobutton()
+        self.SearchingModeRbtn = ttk.Radiobutton()
+        # ! windows colors
+        self.WindowsBgColor = StringVar()  # for error window and saving window
+        self.UserName = getlogin()  # * os.getlogin()
+        self.file_name = "English_" + str(datetime.now().date())
+        self.translator = Translator()
+        self.OnlineSearchBtn = ttk.Button()
+        self.ArDict = {}  # dictionary for linux only,
+        self.LastClipboard = paste()
+        self.SuggestLabel = ttk.Label()
+        self.SuggestBtnsY = 185
+        #  ? ______________________Default values_________________________________  ? #
 
-def clear():
-    Output.config(state=NORMAL)
-    Output.delete(1.0, END)
-    Output.config(state=DISABLED)
+        # ? Configuring the window
+        self.WindowsBgColor.set("#2e2b32")
+        # ? Configuring the window
+        self.geometry('800x800')
+        self.resizable(False, False)
+        self.title('English Register')
+        self.set_theme(self.theme, themebg=True)
+        self.style.theme_use(self.theme)
+        self.bind('<Return>', self.search)  # make  Enter key call search function
+        # ? Configuring the Search box
+        self.SearchBox.config(textvariable=self.SearchBoxContent, font=("Ubuntu", 14))
+        self.SearchBoxContent.set(paste())
+        self.SearchBox.place(relx=0.5, rely=0.1, anchor=CENTER, width=500, height=40)
+        # ? Configuring the Search button
+        self.BtnBgColor.set('#2775f6')
+        self.SearchBtn.config(text='Search', command=self.search)
+        self.SearchBtn.place(x=150, y=130, width=100)
+        self.OnlineSearchBtn.config(text='Videos',
+                                    command=lambda: webbrowser.open(
+                                        f'https://youglish.com/pronounce/{self.SearchBoxContent.get()}/english/?',
+                                        new=1) if not self.EmptySearch else None)
+        self.OnlineSearchBtn.place(x=283, y=130, width=100)
+        # ? Configuring the clear button
+        self.ClearBtn.config(text='Clear', command=self.Clear)
+        self.ClearBtn.place(x=416, y=130, width=100)
+        # ? Configuring Save button
+        self.SaveBtn.config(text='Save', command=self.HandleCWD())
+        self.SaveBtn.place(x=549, y=130, width=100)
+        # ? configuring the output label
+        self.scroll.pack(side=RIGHT, fill=Y)
+        self.Output.config(wrap=NONE,
+                           yscrollcommand=self.scroll.set,
+                           state=DISABLED,
+                           bg=self.style.lookup('TFrame', 'background'),
+                           fg=self.style.lookup('TFrame', 'foreground'),
+                           bd=5,
+                           font=('Ubuntu', 13)
+                           )
+        self.Output.place(x=150, y=180, width=500)
+        self.scroll.config(command=self.Output.yview)
+        self.ThemeLabel.config(text='Themes: ',
+                               background=self.style.lookup('TFrame', 'background'),
+                               foreground=self.style.lookup('TFrame', 'foreground'),
+                               font=('Ubuntu', 12, 'bold')
+                               )
+        self.ThemeLabel.place(x=230, y=1)
+        self.ThemesCombo.config(values=self.Themes,
+                                textvariable=self.SelectedTheme,
+                                state='readonly')
+        self.ThemesCombo.current(18)
+        self.SelectedTheme.trace('w',
+                                 self.ChangeTheme)
+        # ? Trace the writing case of SelectedTheme object to  change the theme
+        self.ThemesCombo.pack()
+        self.Mode.set(False)
+        self.ReadingModeRbtn.config(text='Reading Mode',
+                                    value=True,
+                                    variable=self.Mode,
+                                    command=self.CheckClipboard)
+        self.SearchingModeRbtn.config(text='Searching Mode',
+                                      value=False,
+                                      variable=self.Mode)
+        self.ReadingModeRbtn.place(x=150, y=30)
+        self.SearchingModeRbtn.place(x=500, y=30)
+        self.SuggestLabel.config(text='Suggest words',
+                                 font=('Ubuntu', 14),
+                                 background=self.style.lookup('TFrame', 'background'),
+                                 foreground=self.style.lookup('TFrame', 'foreground')
+                                 )
+        self.SuggestLabel.place(x=650, y=160)
+        self.search()
+        self.mainloop()
 
+    def ShowErrorWin(self, error_message):
+        ErrorWin = Toplevel(self)
+        ErrorWin.config(width=1, height=1, bg=self.WindowsBgColor.get())
+        ErrorWin.resizable(False, False)
+        ErrorWin.title('Error')
+        Error = Label(
+            ErrorWin,
+            text=error_message,
+            font=('Ubuntu', 15),
+            bg=self.WindowsBgColor.get(),
+            fg='red'
+        )
+        Error.pack()
+        ErrorWin.after(3000, lambda: ErrorWin.destroy())
 
-def insert(repeats, translation):
-    Output.config(state=NORMAL)
-    Output.tag_config('center text', justify='center')
-    Output.insert(END, f"{SearchBox.get()} -> {repeats} <- {translation}\n")
-    Output.tag_add("center text", 1.0, END)
-    Output.config(state=DISABLED)
-    SearchBoxContent.set('')
+    def Clear(self):
+        self.Output.config(state=NORMAL)
+        self.Output.delete(1.0, END)
+        self.Output.config(state=DISABLED)
 
+    def Insert(self, repeats, translation):
+        self.Output.config(state=NORMAL)
+        self.Output.tag_config('center text', justify='center')
+        self.Output.insert(END, f"{self.SearchBoxContent.get()} -> {repeats} <- {translation}\n")
+        self.Output.tag_add("center text", 1.0, END)
+        self.Output.config(state=DISABLED)
+        self.CreateButton(self.SearchBoxContent.get())
+        self.SearchBoxContent.set('')
 
-def running_os():
-    # ? platform is a variable in sys Module
-    if platform == 'linux' or platform == 'Linux':
-        return 'linux'
-    elif platform == 'win32' or platform == 'windows':
-        return 'windows'
-    elif platform == 'Darwin':
-        return 'mac'
-    else:
-        show_error_window("can't detect the operating system :( ")
+    def CreateButton(self, word):
+        b = ttk.Button(self, text=word, command=partial(self.ShowSuggestionsWin, word))
+        b.place(x=650, y=self.SuggestBtnsY, height=22, width=131)
+        self.SuggestBtnsY += 22
 
+    @staticmethod
+    def GetSuggestion(query):
+        data = loads(get(f'https://skell.sketchengine.eu/api/run.cgi/thesaurus?lang=English&query={query}&format=json',
+                         headers={"Host": "skell.sketchengine.eu",
+                                  "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0",
+                                  "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+                                  "Accept-Language": "en-US,en;q=0.5",
+                                  "Accept-Encoding": "gzip, deflate",
+                                  "Referer": "https://www.google.com/",
+                                  "Cookie": "_ga_DHRPD3K2JP=GS1.1.1640596256.1.1.1640596461.0; "
+                                            "_ga=GA1.1.151944092.1640596257; "
+                                            "_gcl_au=1.1.2131992169.1640596257; "
+                                            "__gads=ID=243d09fe812600d4-2260341cdbce0047:T=1640596258:RT=1640596258:S"
+                                            "=ALNI_MaHq8vf0ItatI5wJt-GhOn6V32Sww",
+                                  "Connection": "close",
+                                  "Upgrade-Insecure-Requests": "1",
+                                  "If-Modified-Since": "Mon, 01 Nov 2021 16:27:43 GMT",
+                                  "If-None-Match": '"aaf-5cfbca8011dc0-gzip"',
+                                  "Cache-Control": "max-age=0"}).text)['Words']
+        return data
 
-def translate():
-    arabic = translator.translate(SearchBox.get(), src='en', dest='ar')
-    if running_os() == 'linux':
-        merged_letters = reshape(arabic.text)  # ? merge the arabic letters together
-        ordered_letters = get_display(merged_letters)  # ? put the arabic letters in the right order
-        global ArDict
-        ArDict[str(SearchBox.get())] = str(arabic.text)
-        return ordered_letters
-    else:
-        return arabic.text
+    def ShowSuggestionsWin(self, query):
+        data = self.GetSuggestion(query)
+        Win = Toplevel(self)
+        Win.geometry('800x800')
+        Win.title('Suggestions')
+        Words_Freqs = [[dictionary['Word'], dictionary['Freq']] for dictionary in data]
+        SuggestionsVar = StringVar()
+        SuggestionsLabel = Label(Win, textvariable=SuggestionsVar, font=('Ubuntu', 14))
+        for element in Words_Freqs:
+            SuggestionsVar.set(SuggestionsVar.get() + f'{element[0]}  =>  {element[1]}\n')
+        SuggestionsLabel.pack()
+        Win.mainloop()
 
+    @property
+    def RunningOs(self):
+        # ? platform is a variable in sys Module
+        if platform == 'linux' or platform == 'Linux':
+            return 'linux'
+        elif platform == 'win32' or platform == 'windows':
+            return 'windows'
+        elif platform == 'Darwin':
+            return 'mac'
+        else:
+            self.ShowErrorWin("can't detect the operating system :( ")
+            return None
 
-def empty_search():
-    if SearchBoxContent.get() == '':
-        show_error_window("Empty Search !!")
-        return True
-    else:
-        return False
+    @property
+    def Translate(self):
+        arabic = self.translator.translate(self.SearchBox.get(), src='en', dest='ar')
+        if self.RunningOs == 'linux':
+            merged_letters = reshape(arabic.text)  # ? merge the arabic letters together
+            ordered_letters = get_display(merged_letters)  # ? put the arabic letters in the right order
+            self.ArDict[str(self.SearchBox.get())] = str(arabic.text)
+            return ordered_letters
+        else:
+            return arabic.text
 
+    @property
+    def EmptySearch(self):
+        if self.SearchBoxContent.get() == '':
+            self.ShowErrorWin("Empty Search !!")
+            return True
+        else:
+            return False
 
-def repeated_search():
-    if str(Output.get(1.0, END)).lower().__contains__(SearchBoxContent.get().lower()):
-        # ? use .lower() to handle the repeated search with different letter case
-        show_error_window("Repeated Search")
-        return True
-    else:
-        return False
+    @property
+    def RepeatedSearch(self):
+        if str(self.Output.get(1.0, END)).lower().__contains__(self.SearchBoxContent.get().lower()):
+            # ? use .lower() to handle the repeated search with different letter case
+            self.ShowErrorWin("Repeated Search")
+            return True
+        else:
+            return False
 
-
-def handle_trans():
-    try:
-        translation = translate()
-        if translation.lower() == SearchBoxContent.get().lower() + ".":
-            translation = 'Translation error'
-            show_error_window('Error, Check the spelling')
-        return translation
-    except:
-        show_error_window("Translation Error")
-
-
-def handle_repeats():
-    try:
-        page = get("https://youglish.com/pronounce/" + SearchBoxContent.get() + "/english?")
-        # ! get is a function in requests module (HTTP GET method)
-        repeats = page.text.split("<span id='ttl_total'>")[1].split("</span>")[0]
-        return repeats
-    except:
-        SearchBoxContent.set('')
-        show_error_window('Not Found')
-
-
-def you_are_online():
-    try:
-        return get('http://google.com')
-    except:
-        pass
-
-
-def search(*args):
-    # *args to take all The arguments passed to the function (root.bind) method pass one parameter by default
-    if empty_search() or repeated_search():
-        SearchBoxContent.set('')
-    else:
-        insert(translation=handle_trans(),
-               repeats=handle_repeats()) if you_are_online() is not None else show_error_window(
-            'No internet connection')
-        # ! you_online() returns None if there is no internet connection
-
-
-def open_file():
-    if running_os() == 'linux':
+    @property
+    def handle_trans(self):
         try:
-            system(f' gedit {file_name}')
-
+            translation = self.Translate
+            if translation.lower() == self.SearchBoxContent.get().lower() + ".":
+                translation = 'Translation error'
+                self.ShowErrorWin('Error, Check the spelling')
+            return translation
         except:
-            system(
-                f'gnome-terminal -- sudo apt-get install gedit  && gedit {file_name}')
-            # ! install gedit then open the file
-    elif running_os() == 'mac':  # ? macOS
-        system(f'open -e {file_name}')
-    elif running_os() == 'windows':
-        system(f'notepad {file_name}')
+            self.ShowErrorWin("Translation Error")
 
+    @property
+    def HandleRepeats(self):
+        try:
+            page = get("https://youglish.com/pronounce/" + self.SearchBoxContent.get() + "/english?")
+            # ! get is a function in requests module (HTTP GET method)
+            repeats = page.text.split("<span id='ttl_total'>")[1].split("</span>")[0]
+            return repeats
+        except:
+            self.SearchBoxContent.set('')
+            self.ShowErrorWin('Not Found')
 
-def os_path():
-    if running_os() == 'linux':
-        return f'/home/{UserName}/Documents'
-    elif running_os() == 'mac':
-        return f'/Users/{UserName}/Documents'
-    elif running_os() == 'windows':
-        return f'C:\\Users\\{UserName}\\Documents'
+    @staticmethod
+    def YouROnline():
+        try:
+            return get('http://google.com')
+        except:
+            pass
 
+    def search(self, *args):
+        # *args to take all The arguments passed to the function (root.bind) method pass one parameter by default
+        if self.EmptySearch or self.RepeatedSearch:
+            self.SearchBoxContent.set('')
+        else:
+            self.Insert(translation=self.handle_trans,
+                        repeats=self.HandleRepeats) if self.YouROnline() is not None else self.ShowErrorWin(
+                'No internet connection')
+            # ! you_online() returns None if there is no internet connection
 
-def check_english_dir():
-    if running_os() == 'linux':
-        return path.exists(f'{os_path()}/EnglishResults')
-    elif running_os() == 'mac':
-        return path.exists(f'{os_path()}/EnglishResults')
-    elif running_os() == 'windows':
-        return path.exists(f'{os_path()}\\EnglishResults')
-    else:
-        return mkdir('EnglishResults')
+    def OpenFile(self):
+        if self.RunningOs == 'linux':
+            try:
+                system(f' gedit {self.file_name}')
 
+            except:
+                system(
+                    f'gnome-terminal -- sudo apt-get install gedit  && gedit {self.file_name}')
+                # ! install gedit then open the file
+        elif self.RunningOs == 'mac':  # ? macOS
+            system(f'open -e {self.file_name}')
+        elif self.RunningOs == 'windows':
+            system(f'notepad {self.file_name}')
 
-def check_today_file():
-    if not path.exists(file_name):
-        open(file_name, 'w').close()
+    @property
+    def OsPath(self):
+        if self.RunningOs == 'linux':
+            return f'/home/{self.UserName}/Documents'
+        elif self.RunningOs == 'mac':
+            return f'/Users/{self.UserName}/Documents'
+        elif self.RunningOs == 'windows':
+            return f'C:\\Users\\{self.UserName}\\Documents'
 
+    @property
+    def CheckEngDir(self):
+        if self.RunningOs == 'linux':
+            return path.exists(f'{self.OsPath}/EnglishResults')
+        elif self.RunningOs == 'mac':
+            return path.exists(f'{self.OsPath}/EnglishResults')
+        elif self.RunningOs == 'windows':
+            return path.exists(f'{self.OsPath}\\EnglishResults')
+        else:
+            return mkdir('EnglishResults')
 
-def show_saving_win():
-    SavingWindow = Toplevel(root)
-    SavingWindow.title('English Register')
-    SavingWindow.geometry('400x50')
-    SavingWindow.config(bg=WindowsBgColor.get())
-    SavingText = Label(SavingWindow,
-                       text=f'Saved to {file_name}',
-                       font=("Ubuntu", 15),
-                       bg=WindowsBgColor.get(),
-                       fg='white'
-                       )
-    SavingText.pack()
-    OpenFileBtn = Button(SavingWindow,
-                         text='Open the file',
-                         bg=BtnBgColor.get(),
-                         command=lambda: [SavingWindow.destroy(), open_file()]
+    def CheckTodayFile(self):
+        if not path.exists(self.file_name):
+            open(self.file_name, 'w').close()
+
+    def ShowSaveWin(self):
+        SavingWindow = Toplevel(self)
+        SavingWindow.title('English Counter')
+        SavingWindow.geometry('400x50')
+        SavingWindow.config(bg=self.WindowsBgColor.get())
+        SavingText = Label(SavingWindow, text=f'Saved to {self.file_name}', bg=self.WindowsBgColor.get(), fg='white')
+        SavingText.pack()
+        OpenFileBtn = Button(SavingWindow,
+                             text='Open the file',
+                             command=self.OpenFile
+                             )
+        OpenFileBtn.pack()
+
+    def ShowExstWin(self, word):
+        ExstWin = Toplevel()
+        ExstWin.title('Existed word')
+        ExstWin.geometry('400x70')
+        ExstWin.config(bg=self.WindowsBgColor.get())
+
+        ExstText = Label(ExstWin,
+                         text=word,
+                         font=("Ubuntu", 15),
+                         bg=self.WindowsBgColor.get(),
+                         fg='red'
                          )
-    OpenFileBtn.pack()
+        ExstText.pack()
+        IgnoreBtn = Button(ExstWin,
+                           text='Ignore it',
+                           bg=self.BtnBgColor.get(),
+                           command=lambda: ExstWin.destroy()
+                           )
+        Save = Button(ExstWin,
+                      text='Save',
+                      bg=self.BtnBgColor.get(),
+                      command=lambda: [ExstWin.destroy(), self.SaveFile(Repeated=True, RepWord=word)]  # ? Important
+                      )
 
+        IgnoreBtn.place(x=100, y=30)
+        Save.place(x=220, y=30)
 
-def show_exst_win(word):
-    ExstWin = Toplevel(root)
-    ExstWin.title('Existed word')
-    ExstWin.geometry('400x70')
-    ExstWin.config(bg=WindowsBgColor.get())
+    def SaveFile(self, Repeated=False, RepWord=''):
+        file = open(self.file_name, 'r+', encoding='utf-8')
+        FileLines, OutputLines = file.readlines(), self.Output.get(1.0, END).split('\n')[:-2]
+        SavedEnWords = [line.split(' -')[0] for line in FileLines]
+        if Repeated:
+            file.close()
+            open(self.file_name, 'w', encoding='utf-8').writelines(
+                [f'{line[:-1]} *--IMPORTANT--*\n' if line.split(' -')[0] == RepWord else line for line in FileLines])
 
-    ExstText = Label(ExstWin,
-                     text=word,
-                     font=("Ubuntu", 15),
-                     bg=WindowsBgColor.get(),
-                     fg='red'
-                     )
-    ExstText.pack()
-    IgnoreBtn = Button(ExstWin,
-                       text='Ignore it',
-                       bg=BtnBgColor.get(),
-                       command=lambda: ExstWin.destroy()
-                       )
-    Save = Button(ExstWin,
-                  text='Save',
-                  bg=BtnBgColor.get(),
-                  command=lambda: [ExstWin.destroy(), save_file(Repeated=True, RepWord=word)]  # ? Important
-                  )
-
-    IgnoreBtn.place(x=100, y=30)
-    Save.place(x=220, y=30)
-
-
-def save_file(Repeated=False, RepWord=''):
-    file = open(file_name, 'r+', encoding='utf-8')
-    FileLines, OutputLines = file.readlines(), Output.get(1.0, END).split('\n')[:-2]
-    SavedEnWords = [line.split(' -')[0] for line in FileLines]
-    if Repeated:
-        file.close()
-        open(file_name, 'w', encoding='utf-8').writelines(
-            [f'{line[:-1]} *--IMPORTANT--*\n' if line.split(' -')[0] == RepWord else line for line in FileLines])
-
-    else:
-        for line in OutputLines:
-            ar, line, En = line.split()[-1], ''.join(line.split("<-")[:-1]), line.split(' -')[0]
-            # ! three assignment in one line to make the program faster
-            if En in SavedEnWords:
-                show_exst_win(En)
-            elif line == '':
-                pass
-            else:
-                if running_os() == 'linux':
-                    file.write(f"{line}<- {ArDict[En]}\n")
+        else:
+            for line in OutputLines:
+                ar, line, En = line.split()[-1], ''.join(line.split("<-")[:-1]), line.split(' -')[0]
+                # ! three assignment in one line to make the program faster
+                if En in SavedEnWords:
+                    self.ShowExstWin(En)
+                elif line == '':
+                    pass
                 else:
-                    file.write(f'{line}<- {ar}\n')
+                    if self.RunningOs == 'linux':
+                        file.write(
+                            f"{line}<- {self.ArDict[En]}\n")
+                    else:
+                        file.write(f'{line}<- {ar}\n')
 
-        file.close()
+            file.close()
 
+    def HandleCWD(self):
+        if self.Output.get(1.0, END) == '\n' or self.Output.get(1.0, END) == '':  # ! check empty output case
+            self.ShowErrorWin('Nothing to save in a file')
+        else:
+            if self.CheckEngDir:
+                chdir(f"{self.OsPath}/EnglishResults")
 
-def handle_cwd():
-    if Output.get(1.0, END) == '\n' or Output.get(1.0, END) == '':  # ! check empty output case
-        show_error_window('Nothing to save in a file')
-    else:
-        if check_english_dir():
-            chdir(f"{os_path()}/EnglishResults")
+            elif not getcwd().__contains__('English_Results'):
+                chdir(f'{self.OsPath}')
+                mkdir("EnglishResults")
+                chdir("EnglishResults")
 
-        elif not getcwd().__contains__('English_Results'):
-            chdir(f'{os_path()}')
-            mkdir("EnglishResults")
-            chdir("EnglishResults")
+            self.CheckTodayFile()
+            self.SaveFile()
+            self.ShowSaveWin()
 
-        check_today_file()
-        save_file()
-        show_saving_win()
+    def ChangeTheme(self, *args):
+        self.theme = self.Themes[self.Themes.index(self.SelectedTheme.get())]
+        self.config(theme=self.theme, themebg=True)
+        self.Output.config(bg=self.style.lookup('TFrame', 'background'))
+        self.style.theme_use(self.theme)
+        self.ThemeLabel.config(background=self.style.lookup('TFrame', 'background'),
+                               foreground=self.style.lookup('TFrame', 'foreground')
+                               )
+        self.SuggestLabel.config(background=self.style.lookup('TFrame', 'background'),
+                                 foreground=self.style.lookup('TFrame', 'foreground')
+                                 )
 
+    def CheckClipboard(self):
+        if self.LastClipboard != paste():
+            self.SearchBoxContent.set(paste())
+            self.LastClipboard = paste()
+            self.search()
 
-def change_theme(*args):
-    global theme
-    theme = Themes[Themes.index(SelectedTheme.get())]
-    root.config(theme=theme, themebg=True)
-    Output.config(bg=s.lookup('TFrame', 'background'))
-    s.theme_use(theme)
-    ThemeLabel.config(background=s.lookup('TFrame', 'background'),
-                      foreground=s.lookup('TFrame', 'foreground')
-                      )
-
-
-def check_clipboard():
-    global LastClipboard
-    if LastClipboard != paste():
-        SearchBoxContent.set(paste())
-        LastClipboard = paste()
-        search()
-    if Mode.get():
-        Timer(2, check_clipboard).start()  # ? create a Timer object to check the clipboard every two seconds
-    # ? Timer is a class in threading module
-
-
-def start_ui():
-    WindowsBgColor.set("#2e2b32")
-    # ? Configuring the window
-    root.geometry('800x800')
-    root.resizable(False, False)
-    root.title('English Register')
-    root.set_theme(theme, themebg=True)
-    s.theme_use(theme)
-    root.bind('<Return>', search)  # make  Enter key call search function
-    # ? Configuring the Search box
-    SearchBox.config(textvariable=SearchBoxContent, font=("Ubuntu", 14))
-    SearchBoxContent.set(paste())
-    SearchBox.place(relx=0.5, rely=0.1, anchor=CENTER, width=500, height=40)
-    # ? Configuring the Search button
-    BtnBgColor.set('#2775f6')
-    SearchBtn.config(text='Search', command=search)
-    SearchBtn.place(x=150, y=130, width=100)
-    OnlineSearchBtn.config(text='Videos',
-                           command=lambda: webbrowser.open(
-                               f'https://youglish.com/pronounce/{SearchBoxContent.get()}/english/?',
-                               new=1) if not empty_search() else None)
-    OnlineSearchBtn.place(x=283, y=130, width=100)
-    # ? Configuring the clear button
-    ClearBtn.config(text='Clear', command=clear)
-    ClearBtn.place(x=416, y=130, width=100)
-    # ? Configuring Save button
-    SaveBtn.config(text='Save', command=handle_cwd)
-    SaveBtn.place(x=549, y=130, width=100)
-    # ? configuring the output label
-    scroll.pack(side=RIGHT, fill=Y)
-    Output.config(wrap=NONE,
-                  yscrollcommand=scroll.set,
-                  state=DISABLED,
-                  bg=s.lookup('TFrame', 'background'),
-                  fg=s.lookup('TFrame', 'foreground'),
-                  bd=5,
-                  font=('Ubuntu', 13)
-                  )
-    Output.place(x=150, y=180, width=500)
-    scroll.config(command=Output.yview)
-    ThemeLabel.config(text='Themes: ',
-                      background=s.lookup('TFrame', 'background'),
-                      foreground=s.lookup('TFrame', 'foreground'),
-                      font=('Ubuntu', 12, 'bold')
-                      )
-    ThemeLabel.place(x=230, y=1)
-    ThemesCombo.config(values=Themes,
-                       textvariable=SelectedTheme,
-                       state='readonly')
-    ThemesCombo.current(18)
-    SelectedTheme.trace('w', change_theme)  # ? Trace the writing case of SelectedTheme object to  change the theme
-    ThemesCombo.pack()
-    Mode.set(False)
-    ReadingModeRbtn.config(text='Reading Mode',
-                           value=True,
-                           variable=Mode,
-                           command=check_clipboard)
-    SearchingModeRbtn.config(text='Searching Mode',
-                             value=False,
-                             variable=Mode)
-    ReadingModeRbtn.place(x=150, y=30)
-    SearchingModeRbtn.place(x=500, y=30)
-    search()
-    root.mainloop()
+        if self.Mode.get():
+            Timer(2, self.CheckClipboard).start()  # ? create a Timer object to check the clipboard every two seconds
+        # ? Timer is a class in threading module
 
 
-start_ui()
+mainwindow = GUI()
 
