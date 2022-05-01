@@ -23,15 +23,7 @@ from functools import partial
 
 class GUI(ThemedTk):
 
-    def __init__(self):
-        super().__init__()
-        self.Themes = ['adapta', 'alt', 'aquativo', 'arc', 'breeze', 'black', 'blue', 'clam', 'classic', 'clearlooks',
-                       'default',
-                       'equilux', 'itft1', 'keramik', 'keramik_alt', 'kroc', 'plastik', 'radiance', 'scidblue',
-                       'scidgreen',
-                       'scidgrey', 'scidmint', 'scidpink', 'scidpurple', 'scidsand', 'smog', 'winxpblue', 'yaru']
-        self.theme = self.Themes[18]
-        # ! Creating the main objects/components
+    def __CreateMainWidgets(self):
         self.SelectedTheme = StringVar()
         self.ThemesCombo = ttk.Combobox()
         self.ThemeLabel = ttk.Label()
@@ -60,8 +52,9 @@ class GUI(ThemedTk):
         self.LastClipboard = paste()
         self.SuggestLabel = ttk.Label()
         self.SuggestBtnsY = 185
-        #  ? ______________________Default values_________________________________  ? #
 
+
+    def __ConfigureRoot(self):
         # ? Configuring the window
         self.WindowsBgColor.set("#2e2b32")
         # ? Configuring the window
@@ -71,27 +64,52 @@ class GUI(ThemedTk):
         self.set_theme(self.theme, themebg=True)
         self.style.theme_use(self.theme)
         self.bind('<Return>', self.search)  # make  Enter key call search function
-        # ? Configuring the Search box
-        self.SearchBox.config(textvariable=self.SearchBoxContent, font=("Ubuntu", 14))
-        self.SearchBoxContent.set(paste())
-        self.SearchBox.place(relx=0.5, rely=0.1, anchor=CENTER, width=500, height=40)
-        # ? Configuring the Search button
-        self.BtnBgColor.set('#2775f6')
+        
+
+    def __ConfigureSearchBtn(self):
         self.SearchBtn.config(text='Search', command=self.search)
         self.SearchBtn.place(x=150, y=130, width=100)
+
+    def __ConfigureOnlineSearchBtn(self):
+        
         self.OnlineSearchBtn.config(text='Videos',
                                     command=lambda: webbrowser.open(
                                         f'https://youglish.com/pronounce/{self.SearchBoxContent.get()}/english/?',
                                         new=1) if not self.EmptySearch else None)
         self.OnlineSearchBtn.place(x=283, y=130, width=100)
+
+    def __ConfigureClearBtn(self):
         # ? Configuring the clear button
         self.ClearBtn.config(text='Clear', command=self.Clear)
         self.ClearBtn.place(x=416, y=130, width=100)
+
+
+    def __ConfigureSaveBtn(self):
         # ? Configuring Save button
         self.SaveBtn.config(text='Save', command=self.HandleCWD())
         self.SaveBtn.place(x=549, y=130, width=100)
-        # ? configuring the output label
-        self.scroll.pack(side=RIGHT, fill=Y)
+  
+  
+    def __ConfigureButtons(self):
+        self.BtnBgColor.set('#2775f6')
+        self.__ConfigureSearchBtn()
+        self.__ConfigureOnlineSearchBtn()
+        self.__ConfigureClearBtn()
+        self.__ConfigureOnlineSearchBtn()
+        self.__ConfigureSaveBtn()
+
+    def __ConfigureSearchBox(self):
+
+        # ? Configuring the Search box
+        self.SearchBox.config(textvariable=self.SearchBoxContent, font=("Ubuntu", 14))
+        self.SearchBoxContent.set(paste())
+        self.SearchBox.place(relx=0.5, rely=0.1, anchor=CENTER, width=500, height=40)
+
+    def __ConfigureScroll(self):
+        self.scroll.pack(side=RIGHT, fill=Y)       
+        self.scroll.config(command=self.Output.yview)
+
+    def __ConfigureOutput(self):
         self.Output.config(wrap=NONE,
                            yscrollcommand=self.scroll.set,
                            state=DISABLED,
@@ -101,7 +119,10 @@ class GUI(ThemedTk):
                            font=('Ubuntu', 13)
                            )
         self.Output.place(x=150, y=180, width=500)
-        self.scroll.config(command=self.Output.yview)
+        
+        
+    def __ConfigureThemes(self):
+        
         self.ThemeLabel.config(text='Themes: ',
                                background=self.style.lookup('TFrame', 'background'),
                                foreground=self.style.lookup('TFrame', 'foreground'),
@@ -116,6 +137,8 @@ class GUI(ThemedTk):
                                  self.ChangeTheme)
         # ? Trace the writing case of SelectedTheme object to  change the theme
         self.ThemesCombo.pack()
+    
+    def __ConfigureModes(self):
         self.Mode.set(False)
         self.ReadingModeRbtn.config(text='Reading Mode',
                                     value=True,
@@ -126,14 +149,39 @@ class GUI(ThemedTk):
                                       variable=self.Mode)
         self.ReadingModeRbtn.place(x=150, y=30)
         self.SearchingModeRbtn.place(x=500, y=30)
+        
+    def __ConfigureSuggestions(self):
         self.SuggestLabel.config(text='Suggest words',
                                  font=('Ubuntu', 14),
                                  background=self.style.lookup('TFrame', 'background'),
                                  foreground=self.style.lookup('TFrame', 'foreground')
                                  )
         self.SuggestLabel.place(x=650, y=160)
+        
+    def __ConfigureAllWidgets(self):
+        self.__ConfigureRoot()
+        self.__ConfigureSearchBox()
+        self.__ConfigureButtons()
+        self.__ConfigureScroll()
+        self.__ConfigureOutput()
+        self.__ConfigureThemes()
+        self.__ConfigureModes()
+        self.__ConfigureSuggestions()
+        
+        
+    def __init__(self):
+        super().__init__()
+        self.Themes = ['adapta', 'alt', 'aquativo', 'arc', 'breeze', 'black', 'blue', 'clam', 'classic', 'clearlooks',
+                        'default',
+                        'equilux', 'itft1', 'keramik', 'keramik_alt', 'kroc', 'plastik', 'radiance', 'scidblue',
+                        'scidgreen',
+                        'scidgrey', 'scidmint', 'scidpink', 'scidpurple', 'scidsand', 'smog', 'winxpblue', 'yaru']
+        self.theme = self.Themes[18]
+        # ! Creating the main objects/components
+        self.__CreateMainWidgets()
+        self.__ConfigureAllWidgets()
         self.search()
-        self.mainloop()
+
 
     def ShowErrorWin(self, error_message):
         ErrorWin = Toplevel(self)
@@ -427,4 +475,4 @@ class GUI(ThemedTk):
 
 
 mainwindow = GUI()
-
+mainwindow.mainloop()
